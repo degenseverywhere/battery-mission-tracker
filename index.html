@@ -159,24 +159,35 @@
     animation:pulse 1.2s ease-in-out infinite;}
   @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.6;}}
 
-  /* safety T */
-  .safety-t{
-    position:sticky;top:var(--header-h,52px);z-index:15;
-    background:var(--panel);border:1px solid var(--line);
-    border-radius:var(--radius);margin-bottom:16px;padding:11px 13px 12px;
+  /* safety T floating button + popup */
+  .st-fab{
+    display:none;align-items:center;gap:6px;margin-left:auto;
+    background:var(--amber);color:#231a05;border:none;cursor:pointer;
+    border-radius:10px;padding:5px 10px 5px 6px;font-family:inherit;
   }
-  .st-head{display:flex;align-items:center;gap:9px;cursor:pointer;user-select:none;}
-  .st-tag{
-    width:24px;height:24px;flex:0 0 auto;border-radius:7px;background:var(--amber);
-    color:#231a05;font-weight:800;font-size:14px;display:flex;align-items:center;justify-content:center;
+  .st-fab.show{display:inline-flex;}
+  .st-fab:active{transform:scale(.97);}
+  .st-tag{width:22px;height:22px;flex:0 0 auto;border-radius:6px;background:#231a05;color:var(--amber);
+    font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;}
+  .st-fab .sum{font-size:11px;font-weight:700;letter-spacing:.2px;white-space:nowrap;max-width:130px;
+    overflow:hidden;text-overflow:ellipsis;}
+
+  .st-overlay{position:fixed;inset:0;z-index:45;background:rgba(0,0,0,.5);display:none;}
+  .st-overlay.show{display:block;}
+  .st-popup{
+    position:fixed;z-index:46;top:calc(var(--header-h,52px) + 8px);left:12px;right:12px;
+    max-width:320px;margin-left:auto;background:var(--panel);
+    border:1px solid var(--amber);border-radius:16px;padding:13px 15px 16px;
+    box-shadow:0 14px 44px rgba(0,0,0,.6);display:none;
   }
-  .st-head h3{margin:0;font-size:13px;font-weight:600;letter-spacing:.4px;}
-  .st-sum{display:none;font-size:11px;color:var(--muted);margin-left:6px;flex:1;min-width:0;
-    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .safety-t.collapsed .st-sum{display:block;}
-  .st-head .chev{margin-left:auto;color:var(--dim);font-size:13px;transition:transform .2s;}
-  .safety-t.collapsed .chev{transform:rotate(-90deg);}
-  .safety-t.collapsed .st-content{display:none;}
+  .st-popup.show{display:block;animation:pop .16s ease;}
+  @keyframes pop{from{opacity:0;transform:translateY(-6px);}to{opacity:1;transform:none;}}
+  .st-pop-head{display:flex;align-items:center;gap:9px;margin-bottom:2px;}
+  .st-pop-head .st-tag{background:var(--amber);color:#231a05;}
+  .st-pop-head h3{margin:0;font-size:13px;font-weight:600;letter-spacing:.4px;flex:1;}
+  .st-close{background:transparent;border:none;color:var(--muted);font-size:22px;line-height:1;
+    cursor:pointer;width:30px;height:30px;border-radius:8px;}
+  .st-close:active{background:var(--panel-2);}
 
   .st-grid{
     position:relative;display:grid;
@@ -197,7 +208,30 @@
   .st-center .st-in{border-color:#5c4a17;color:var(--amber);}
   .st-center .st-lbl{color:var(--amber);}
   .st-fs{display:flex;flex-direction:column;align-items:flex-end;margin-top:8px;}
-  .st-fs .st-cell{width:42%;}
+  .st-fs .st-cell{width:46%;}
+
+  /* mission flow overview */
+  .flow-strip{display:flex;overflow-x:auto;padding:6px 2px 12px;margin-bottom:4px;
+    scroll-snap-type:x proximity;}
+  .flow-strip::-webkit-scrollbar{height:0;}
+  .flow-step{flex:0 0 auto;width:72px;display:flex;flex-direction:column;align-items:center;gap:7px;
+    position:relative;cursor:pointer;scroll-snap-align:center;}
+  .flow-step:active{opacity:.7;}
+  .flow-step::before{content:"";position:absolute;top:17px;left:-50%;width:100%;height:2px;background:var(--lock);}
+  .flow-step:first-child::before{display:none;}
+  .flow-step.done::before,.flow-step.active::before{background:var(--green-deep);}
+  .fs-dot{width:34px;height:34px;border-radius:50%;background:var(--panel-2);color:var(--muted);
+    display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;
+    position:relative;z-index:1;border:2px solid var(--line);}
+  .flow-step.active .fs-dot{background:var(--amber);color:#231a05;border-color:var(--amber);}
+  .flow-step.done .fs-dot{background:var(--green);color:#0d1408;border-color:var(--green);}
+  .fs-title{font-size:9.5px;color:var(--dim);line-height:1.2;font-weight:600;text-align:center;}
+  .flow-step.active .fs-title{color:var(--amber);}
+  .flow-step.done .fs-title{color:var(--muted);}
+
+  .phase{scroll-margin-top:calc(var(--header-h,52px) + 12px);}
+  .phase.flash{animation:flash .9s ease;}
+  @keyframes flash{0%,100%{box-shadow:none;}30%{box-shadow:0 0 0 2px var(--amber);}}
 
   /* reference */
   .ref-card{
@@ -252,6 +286,10 @@
     <span class="dot"></span>
     <h1>Battery Mission Tracker</h1>
     <span class="mode" id="headerMode">Pre-Ops</span>
+    <button class="st-fab" id="stFab" onclick="toggleSTPopup()">
+      <span class="st-tag">T</span>
+      <span class="sum" id="stFabSum">Safety&nbsp;T</span>
+    </button>
   </div>
 </header>
 
@@ -287,44 +325,8 @@
   <!-- ============ MISSION VIEW ============ -->
   <section class="view" id="view-mission">
 
-    <div class="safety-t" id="safetyT">
-      <div class="st-head" onclick="toggleSafetyT()">
-        <span class="st-tag">T</span>
-        <h3>Safety T</h3>
-        <span class="st-sum" id="stSummary"></span>
-        <span class="chev">&#9662;</span>
-      </div>
-      <div class="st-content">
-        <div class="st-grid">
-          <div class="st-cell" style="grid-column:2;grid-row:1;">
-            <span class="st-lbl">Max QE</span>
-            <input id="st-maxqe" class="st-in" inputmode="numeric" placeholder="&mdash;" oninput="onSTInput('maxqe',this.value)">
-          </div>
-          <div class="st-cell" style="grid-column:1;grid-row:2;">
-            <span class="st-lbl">Left Limit</span>
-            <input id="st-left" class="st-in" inputmode="numeric" placeholder="&mdash;" oninput="onSTInput('left',this.value)">
-          </div>
-          <div class="st-cell st-center" style="grid-column:2;grid-row:2;">
-            <span class="st-lbl">Charge</span>
-            <input id="st-charge" class="st-in" placeholder="&mdash;" oninput="onSTInput('charge',this.value)">
-          </div>
-          <div class="st-cell" style="grid-column:3;grid-row:2;">
-            <span class="st-lbl">Right Limit</span>
-            <input id="st-right" class="st-in" inputmode="numeric" placeholder="&mdash;" oninput="onSTInput('right',this.value)">
-          </div>
-          <div class="st-cell" style="grid-column:2;grid-row:3;">
-            <span class="st-lbl">Min QE</span>
-            <input id="st-minqe" class="st-in" inputmode="numeric" placeholder="&mdash;" oninput="onSTInput('minqe',this.value)">
-          </div>
-        </div>
-        <div class="st-fs">
-          <div class="st-cell">
-            <span class="st-lbl">Min FS</span>
-            <input id="st-minfs" class="st-in" inputmode="numeric" placeholder="&mdash;" oninput="onSTInput('minfs',this.value)">
-          </div>
-        </div>
-      </div>
-    </div>
+    <div class="section-label">Mission overview</div>
+    <div class="flow-strip" id="flowStrip"></div>
 
     <div class="summary">
       <div class="ring">
@@ -342,7 +344,7 @@
       </div>
     </div>
 
-    <div class="section-label">Mission Sequence</div>
+    <div class="section-label">Detailed steps</div>
     <div id="phaseList"></div>
     <div id="fireBannerHolder"></div>
 
@@ -375,14 +377,14 @@
       <div class="gloss"><span class="term">GS / GA</span><span class="def">Gun-line staff (GEC / actions)</span></div>
       <div class="gloss"><span class="term">WSO</span><span class="def">Weapon Safety Officer</span></div>
       <div class="gloss"><span class="term">PSO</span><span class="def">Position Safety Officer</span></div>
-      <div class="gloss"><span class="term">CSO</span><span class="def">Command Safety Officer</span></div>
-      <div class="gloss"><span class="term">BRO</span><span class="def">Battery / verifying officer</span></div>
+      <div class="gloss"><span class="term">CSO</span><span class="def">Chief Safety Officer</span></div>
+      <div class="gloss"><span class="term">BRO</span><span class="def">Battery Recce Officer</span></div>
     </div>
 
     <div class="section-label">Terms</div>
     <div class="ref-card">
-      <div class="gloss"><span class="term">GEC</span><span class="def">Gun Error Correction</span></div>
-      <div class="gloss"><span class="term">COA</span><span class="def">Course of Action</span></div>
+      <div class="gloss"><span class="term">GEC</span><span class="def">Gross Error Check</span></div>
+      <div class="gloss"><span class="term">COA</span><span class="def">Centre of Arc</span></div>
       <div class="gloss"><span class="term">Safety T</span><span class="def">Safety template / trace</span></div>
       <div class="gloss"><span class="term">QE</span><span class="def">Quadrant Elevation</span></div>
       <div class="gloss"><span class="term">MSN / FFE</span><span class="def">Mission / Fire For Effect</span></div>
@@ -391,6 +393,43 @@
     <p class="hint">Reference only — adapt to your unit's SOP.</p>
   </section>
 
+</div>
+
+<div class="st-overlay" id="stOverlay" onclick="closeSTPopup()"></div>
+<div class="st-popup" id="stPopup">
+  <div class="st-pop-head">
+    <span class="st-tag">T</span>
+    <h3>Safety T</h3>
+    <button class="st-close" onclick="closeSTPopup()" aria-label="Close">&times;</button>
+  </div>
+  <div class="st-grid">
+    <div class="st-cell" style="grid-column:2;grid-row:1;">
+      <span class="st-lbl">Max QE</span>
+      <input id="st-maxqe" class="st-in" inputmode="numeric" placeholder="&mdash;" oninput="onSTInput('maxqe',this.value)">
+    </div>
+    <div class="st-cell" style="grid-column:1;grid-row:2;">
+      <span class="st-lbl">Left Limit</span>
+      <input id="st-left" class="st-in" inputmode="numeric" placeholder="&mdash;" oninput="onSTInput('left',this.value)">
+    </div>
+    <div class="st-cell st-center" style="grid-column:2;grid-row:2;">
+      <span class="st-lbl">Charge</span>
+      <input id="st-charge" class="st-in" placeholder="&mdash;" oninput="onSTInput('charge',this.value)">
+    </div>
+    <div class="st-cell" style="grid-column:3;grid-row:2;">
+      <span class="st-lbl">Right Limit</span>
+      <input id="st-right" class="st-in" inputmode="numeric" placeholder="&mdash;" oninput="onSTInput('right',this.value)">
+    </div>
+    <div class="st-cell" style="grid-column:2;grid-row:3;">
+      <span class="st-lbl">Min QE</span>
+      <input id="st-minqe" class="st-in" inputmode="numeric" placeholder="&mdash;" oninput="onSTInput('minqe',this.value)">
+    </div>
+  </div>
+  <div class="st-fs">
+    <div class="st-cell">
+      <span class="st-lbl">Min FS</span>
+      <input id="st-minfs" class="st-in" inputmode="numeric" placeholder="&mdash;" oninput="onSTInput('minfs',this.value)">
+    </div>
+  </div>
 </div>
 
 <nav>
@@ -415,7 +454,7 @@
 const PREOPS = [
   {id:"comms",  label:"Comms Check",            sub:"FO, Gun 1, 2, 3 net check"},
   {id:"met",    label:"Met Message",            sub:"Received & in date"},
-  {id:"coa",    label:"COA Recorded",           sub:"Course of action confirmed"},
+  {id:"coa",    label:"COA Recorded",           sub:"Centre of arc confirmed"},
   {id:"ammo",   label:"Ammo Downloaded",        sub:"All guns ammo state in"},
   {id:"grids",  label:"Gun Grids Verified",     sub:"Checked by BRO"},
   {id:"prop",   label:"Prop Temp",              sub:"Propellant temperature taken"},
@@ -604,6 +643,31 @@ function renderMission(){
     document.getElementById("mState").textContent=`Step ${activeIdx+1}: ${ph.title}`;
     document.getElementById("mHint").textContent="Complete highlighted tasks to advance.";
   }
+  renderFlow();
+}
+
+/* ---------- FLOW OVERVIEW ---------- */
+const FLOW_TITLES=["Received","Deliver","GEC / GA","Solutions","Ready","Load","Fire"];
+function renderFlow(){
+  const strip=document.getElementById("flowStrip");
+  strip.innerHTML="";
+  const activeIdx=firstIncomplete();
+  PHASES.forEach((p,i)=>{
+    const complete=phaseComplete(p);
+    const active=(i===activeIdx);
+    const el=document.createElement("div");
+    el.className="flow-step "+(complete?"done":active?"active":"");
+    el.innerHTML=`<div class="fs-dot">${complete?"&#10003;":(i+1)}</div><div class="fs-title">${FLOW_TITLES[i]}</div>`;
+    el.onclick=()=>scrollToPhase(i);
+    strip.appendChild(el);
+  });
+}
+function scrollToPhase(i){
+  const node=document.getElementById("phaseList").children[i];
+  if(node){
+    node.scrollIntoView({behavior:"smooth",block:"start"});
+    node.classList.add("flash"); setTimeout(()=>node.classList.remove("flash"),900);
+  }
 }
 
 /* ---------- BADGES / NAV ---------- */
@@ -631,7 +695,11 @@ function showView(v){
   document.getElementById("view-"+v).classList.add("active");
   document.querySelectorAll("nav button").forEach(b=>b.classList.remove("active"));
   document.getElementById("tab-"+v).classList.add("active");
+  const isMission=(v==="mission");
   document.getElementById("headerMode").textContent=MODE[v];
+  document.getElementById("headerMode").style.display=isMission?"none":"block";
+  document.getElementById("stFab").classList.toggle("show",isMission);
+  if(!isMission) closeSTPopup();
   window.scrollTo(0,0);
 }
 
@@ -650,7 +718,6 @@ const STF=["maxqe","left","charge","right","minqe","minfs"];
 function renderSafetyT(){
   if(!state.safetyT) state.safetyT={};
   STF.forEach(f=>{ const el=document.getElementById("st-"+f); if(el) el.value=state.safetyT[f]||""; });
-  document.getElementById("safetyT").classList.toggle("collapsed", !!state.safetyTCollapsed);
   updateSTSummary();
 }
 function onSTInput(f,val){
@@ -659,16 +726,17 @@ function onSTInput(f,val){
   save(); updateSTSummary();
 }
 function updateSTSummary(){
-  const s=state.safetyT||{}; const p=[];
-  if(s.charge) p.push("Chg "+s.charge);
-  if(s.left||s.right) p.push("L "+(s.left||"—")+" R "+(s.right||"—"));
-  if(s.minqe||s.maxqe) p.push("QE "+(s.minqe||"—")+"–"+(s.maxqe||"—"));
-  if(s.minfs) p.push("FS "+s.minfs);
-  document.getElementById("stSummary").textContent = p.length?p.join(" · "):"Tap to set limits";
+  const s=state.safetyT||{};
+  document.getElementById("stFabSum").textContent = s.charge ? ("Chg "+s.charge) : "Safety T";
 }
-function toggleSafetyT(){
-  state.safetyTCollapsed=!state.safetyTCollapsed; save();
-  document.getElementById("safetyT").classList.toggle("collapsed", state.safetyTCollapsed);
+function toggleSTPopup(){
+  const open=!document.getElementById("stPopup").classList.contains("show");
+  document.getElementById("stPopup").classList.toggle("show",open);
+  document.getElementById("stOverlay").classList.toggle("show",open);
+}
+function closeSTPopup(){
+  document.getElementById("stPopup").classList.remove("show");
+  document.getElementById("stOverlay").classList.remove("show");
 }
 
 /* keep sticky Safety T flush beneath the header */
