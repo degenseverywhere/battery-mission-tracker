@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#11140f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Mission Tracker">
+<title>Battery Mission Tracker</title>
+<style>
+  :root{
+    --bg:#11140f;
+    --panel:#1a1f16;
+    --panel-2:#222a1d;
+    --line:#33402a;
+    --txt:#e7ecdf;
+    --muted:#9aa888;
+    --dim:#6a7559;
+    --olive:#7d9b4e;
+    --olive-bright:#a4c95f;
+    --amber:#e0a82e;
+    --green:#5fbf6b;
+    --green-deep:#2f7a3a;
+    --red:#d9534f;
+    --lock:#3a3f33;
+    --radius:14px;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--txt);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,system-ui,sans-serif;
+    line-height:1.45;
+    padding-bottom:calc(78px + env(safe-area-inset-bottom));
+    -webkit-font-smoothing:antialiased;
+  }
+  header{
+    position:sticky;top:0;z-index:20;
+    background:rgba(17,20,15,0.92);
+    backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--line);
+    padding:calc(12px + env(safe-area-inset-top)) 16px 12px;
+  }
+  .h-title{display:flex;align-items:center;gap:9px;}
+  .h-title .dot{width:10px;height:10px;border-radius:3px;background:var(--olive-bright);}
+  .h-title h1{font-size:17px;font-weight:700;margin:0;letter-spacing:0.3px;}
+  .h-title .mode{margin-left:auto;font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:1px;}
+
+  .wrap{padding:16px 14px 24px;max-width:560px;margin:0 auto;}
+  .view{display:none;}
+  .view.active{display:block;animation:fade .2s ease;}
+  @keyframes fade{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:none;}}
+
+  /* progress summary */
+  .summary{
+    display:flex;align-items:center;gap:16px;
+    background:var(--panel);border:1px solid var(--line);
+    border-radius:var(--radius);padding:16px;margin-bottom:18px;
+  }
+  .ring{position:relative;width:74px;height:74px;flex:0 0 auto;}
+  .ring svg{transform:rotate(-90deg);}
+  .ring .val{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+  .ring .val b{font-size:20px;line-height:1;}
+  .ring .val span{font-size:10px;color:var(--muted);}
+  .summary .info h2{margin:0 0 2px;font-size:15px;font-weight:600;}
+  .summary .info p{margin:0;font-size:12.5px;color:var(--muted);}
+  .summary .info .stat{color:var(--olive-bright);font-weight:600;}
+
+  .section-label{
+    font-size:11px;letter-spacing:1.4px;text-transform:uppercase;
+    color:var(--dim);margin:22px 4px 9px;font-weight:600;
+  }
+  .section-label:first-child{margin-top:0;}
+
+  /* checklist items */
+  .check{
+    display:flex;align-items:center;gap:13px;
+    background:var(--panel);border:1px solid var(--line);
+    border-radius:var(--radius);padding:14px 15px;margin-bottom:10px;
+    cursor:pointer;transition:background .15s,border-color .15s,transform .08s;
+    user-select:none;
+  }
+  .check:active{transform:scale(0.985);}
+  .check .box{
+    width:28px;height:28px;flex:0 0 auto;border-radius:8px;
+    border:2px solid var(--dim);display:flex;align-items:center;justify-content:center;
+    font-size:16px;color:transparent;transition:all .15s;
+  }
+  .check .num{font-size:11px;color:var(--dim);width:18px;flex:0 0 auto;text-align:center;font-weight:600;}
+  .check .label{font-size:14.5px;flex:1;}
+  .check .sub{display:block;font-size:11.5px;color:var(--muted);margin-top:1px;}
+  .check.done{background:var(--panel-2);border-color:var(--green-deep);}
+  .check.done .box{background:var(--green);border-color:var(--green);color:#0d1408;}
+  .check.done .label{color:var(--muted);}
+  .check.done .label .main{text-decoration:line-through;text-decoration-color:var(--dim);}
+
+  /* mission phases */
+  .phase{
+    background:var(--panel);border:1px solid var(--line);
+    border-radius:var(--radius);margin-bottom:12px;overflow:hidden;
+    transition:border-color .2s,opacity .2s;
+  }
+  .phase.locked{opacity:.45;}
+  .phase.active{border-color:var(--amber);box-shadow:0 0 0 1px var(--amber);}
+  .phase.complete{border-color:var(--green-deep);}
+  .ph-head{display:flex;align-items:center;gap:11px;padding:13px 15px;}
+  .ph-step{
+    width:30px;height:30px;flex:0 0 auto;border-radius:9px;
+    background:var(--lock);color:var(--muted);
+    display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;
+  }
+  .phase.active .ph-step{background:var(--amber);color:#231a05;}
+  .phase.complete .ph-step{background:var(--green);color:#0d1408;}
+  .ph-titles{flex:1;min-width:0;}
+  .ph-titles h3{margin:0;font-size:14.5px;font-weight:600;}
+  .ph-titles .meta{font-size:11px;color:var(--muted);margin-top:1px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+  .badge{
+    font-size:9.5px;letter-spacing:.6px;text-transform:uppercase;font-weight:700;
+    padding:2px 7px;border-radius:6px;background:var(--panel-2);color:var(--dim);border:1px solid var(--line);
+  }
+  .badge.concurrent{color:var(--amber);border-color:#5c4a17;background:#2a230f;}
+  .badge.optional{color:var(--olive-bright);border-color:#3d4d28;background:#222a17;}
+  .ph-status{font-size:11px;color:var(--dim);flex:0 0 auto;}
+  .phase.active .ph-status{color:var(--amber);}
+  .phase.complete .ph-status{color:var(--green);}
+
+  .ph-body{padding:0 15px 13px 56px;}
+  .task{
+    display:flex;align-items:flex-start;gap:11px;padding:10px 0;cursor:pointer;user-select:none;
+    border-top:1px solid var(--line);
+  }
+  .task:active{opacity:.7;}
+  .task .tbox{
+    width:24px;height:24px;flex:0 0 auto;border-radius:7px;margin-top:1px;
+    border:2px solid var(--dim);display:flex;align-items:center;justify-content:center;
+    font-size:14px;color:transparent;transition:all .15s;
+  }
+  .task .ttext{font-size:13.5px;flex:1;}
+  .task .ttext .who{color:var(--olive-bright);font-weight:600;}
+  .task.done .tbox{background:var(--green);border-color:var(--green);color:#0d1408;}
+  .task.done .ttext{color:var(--dim);text-decoration:line-through;text-decoration-color:var(--lock);}
+  .phase.locked .task{pointer-events:none;}
+
+  .skip-btn{
+    margin-top:10px;font-size:12px;color:var(--olive-bright);background:transparent;
+    border:1px dashed #3d4d28;border-radius:8px;padding:7px 12px;cursor:pointer;width:100%;
+  }
+  .skip-btn:active{background:#1d2414;}
+  .skip-btn.skipped{color:var(--muted);border-style:solid;}
+
+  .fire-banner{
+    margin-top:6px;text-align:center;padding:20px;border-radius:var(--radius);
+    background:#1d2a14;border:1px solid var(--green-deep);color:var(--green);
+    font-weight:700;font-size:16px;letter-spacing:1px;
+  }
+  .fire-banner.hot{background:#2e1411;border-color:var(--red);color:#ff6b66;
+    animation:pulse 1.2s ease-in-out infinite;}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.6;}}
+
+  /* safety T */
+  .safety-t{
+    position:sticky;top:var(--header-h,52px);z-index:15;
+    background:var(--panel);border:1px solid var(--line);
+    border-radius:var(--radius);margin-bottom:16px;padding:11px 13px 12px;
+  }
+  .st-head{display:flex;align-items:center;gap:9px;cursor:pointer;user-select:none;}
+  .st-tag{
+    width:24px;height:24px;flex:0 0 auto;border-radius:7px;background:var(--amber);
+    color:#231a05;font-weight:800;font-size:14px;display:flex;align-items:center;justify-content:center;
+  }
+  .st-head h3{margin:0;font-size:13px;font-weight:600;letter-spacing:.4px;}
+  .st-sum{display:none;font-size:11px;color:var(--muted);margin-left:6px;flex:1;min-width:0;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .safety-t.collapsed .st-sum{display:block;}
+  .st-head .chev{margin-left:auto;color:var(--dim);font-size:13px;transition:transform .2s;}
+  .safety-t.collapsed .chev{transform:rotate(-90deg);}
+  .safety-t.collapsed .st-content{display:none;}
+
+  .st-grid{
+    position:relative;display:grid;
+    grid-template-columns:1fr 1fr 1fr;grid-template-rows:auto auto auto;
+    gap:9px 8px;align-items:center;margin-top:10px;padding:4px 2px 2px;
+  }
+  .st-grid::before{content:"";position:absolute;left:20%;right:20%;top:50%;height:2px;background:var(--line);}
+  .st-grid::after{content:"";position:absolute;top:16%;bottom:16%;left:50%;width:2px;background:var(--line);transform:translateX(-1px);}
+  .st-cell{position:relative;z-index:1;}
+  .st-lbl{display:block;font-size:9px;text-transform:uppercase;letter-spacing:.5px;
+    color:var(--dim);margin-bottom:3px;text-align:center;}
+  .st-in{
+    width:100%;background:var(--bg);border:1px solid var(--line);color:var(--txt);
+    border-radius:8px;padding:7px 4px;text-align:center;font-size:15px;font-weight:600;
+    font-family:inherit;}
+  .st-in:focus{outline:none;border-color:var(--amber);}
+  .st-in::placeholder{color:var(--lock);}
+  .st-center .st-in{border-color:#5c4a17;color:var(--amber);}
+  .st-center .st-lbl{color:var(--amber);}
+  .st-fs{display:flex;flex-direction:column;align-items:flex-end;margin-top:8px;}
+  .st-fs .st-cell{width:42%;}
+
+  /* reference */
+  .ref-card{
+    background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    padding:14px 15px;margin-bottom:12px;
+  }
+  .ref-card h3{margin:0 0 10px;font-size:13px;letter-spacing:.5px;text-transform:uppercase;color:var(--olive-bright);}
+  .ref-line{font-size:13px;padding:8px 0;border-top:1px solid var(--line);color:var(--txt);}
+  .ref-line:first-of-type{border-top:none;}
+  .ref-line b{color:var(--amber);font-weight:600;}
+  .gloss{display:flex;justify-content:space-between;gap:12px;font-size:12.5px;padding:6px 0;border-top:1px solid var(--line);}
+  .gloss:first-of-type{border-top:none;}
+  .gloss .term{color:var(--olive-bright);font-weight:600;flex:0 0 auto;}
+  .gloss .def{color:var(--muted);text-align:right;}
+
+  /* tab bar */
+  nav{
+    position:fixed;left:0;right:0;bottom:0;z-index:30;
+    background:rgba(17,20,15,0.96);backdrop-filter:blur(10px);
+    border-top:1px solid var(--line);
+    display:flex;padding:8px 8px calc(8px + env(safe-area-inset-bottom));
+  }
+  nav button{
+    flex:1;background:transparent;border:none;color:var(--dim);
+    display:flex;flex-direction:column;align-items:center;gap:3px;
+    font-size:10.5px;font-weight:600;letter-spacing:.3px;cursor:pointer;padding:6px 4px;
+    border-radius:10px;
+  }
+  nav button .ic{font-size:21px;line-height:1;}
+  nav button.active{color:var(--olive-bright);background:var(--panel);}
+  nav button .pill{
+    position:absolute;transform:translate(15px,-6px);
+    font-size:9px;font-weight:700;min-width:16px;height:16px;line-height:16px;
+    background:var(--amber);color:#231a05;border-radius:8px;padding:0 4px;
+  }
+  nav button.complete-pill .pill{background:var(--green);color:#0d1408;}
+
+  .reset-row{margin-top:24px;display:flex;gap:10px;}
+  .reset-row button{
+    flex:1;background:var(--panel);border:1px solid var(--line);color:var(--muted);
+    padding:12px;border-radius:10px;font-size:12.5px;font-weight:600;cursor:pointer;
+  }
+  .reset-row button:active{background:var(--panel-2);}
+  .reset-row button.danger{color:var(--red);border-color:#5c2826;}
+  .hint{font-size:11.5px;color:var(--dim);text-align:center;margin-top:14px;line-height:1.6;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="h-title">
+    <span class="dot"></span>
+    <h1>Battery Mission Tracker</h1>
+    <span class="mode" id="headerMode">Pre-Ops</span>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- ============ PRE-OPS VIEW ============ -->
+  <section class="view active" id="view-preops">
+    <div class="summary">
+      <div class="ring">
+        <svg width="74" height="74" viewBox="0 0 74 74">
+          <circle cx="37" cy="37" r="32" fill="none" stroke="#2a3320" stroke-width="7"/>
+          <circle id="ringFill" cx="37" cy="37" r="32" fill="none" stroke="var(--olive-bright)"
+                  stroke-width="7" stroke-linecap="round" stroke-dasharray="201" stroke-dashoffset="201"/>
+        </svg>
+        <div class="val"><b id="ringNum">0/9</b><span>checks</span></div>
+      </div>
+      <div class="info">
+        <h2>Battery Readiness</h2>
+        <p><span class="stat" id="preopsLeft">9 checks remaining</span></p>
+        <p id="preopsState">Tap each check once completed.</p>
+      </div>
+    </div>
+
+    <div class="section-label">9 Battery Readiness Checks</div>
+    <div id="preopsList"></div>
+
+    <div class="reset-row">
+      <button onclick="resetPreops()">Reset checks</button>
+    </div>
+    <p class="hint">Progress saves automatically on this device.</p>
+  </section>
+
+  <!-- ============ MISSION VIEW ============ -->
+  <section class="view" id="view-mission">
+
+    <div class="safety-t" id="safetyT">
+      <div class="st-head" onclick="toggleSafetyT()">
+        <span class="st-tag">T</span>
+        <h3>Safety T</h3>
+        <span class="st-sum" id="stSummary"></span>
+        <span class="chev">&#9662;</span>
+      </div>
+      <div class="st-content">
+        <div class="st-grid">
+          <div class="st-cell" style="grid-column:2;grid-row:1;">
+            <span class="st-lbl">Max QE</span>
+            <input id="st-maxqe" class="st-in" inputmode="numeric" placeholder="&mdash;" oninput="onSTInput('maxqe',this.value)">
+          </div>
+          <div class="st-cell" style="grid-column:1;grid-row:2;">
+            <span class="st-lbl">Left Limit</span>
+            <input id="st-left" class="st-in" inputmode="numeric" placeholder="&mdash;" oninput="onSTInput('left',this.value)">
+          </div>
+          <div class="st-cell st-center" style="grid-column:2;grid-row:2;">
+            <span class="st-lbl">Charge</span>
+            <input id="st-charge" class="st-in" placeholder="&mdash;" oninput="onSTInput('charge',this.value)">
+          </div>
+          <div class="st-cell" style="grid-column:3;grid-row:2;">
+            <span class="st-lbl">Right Limit</span>
+            <input id="st-right" class="st-in" inputmode="numeric" placeholder="&mdash;" oninput="onSTInput('right',this.value)">
+          </div>
+          <div class="st-cell" style="grid-column:2;grid-row:3;">
+            <span class="st-lbl">Min QE</span>
+            <input id="st-minqe" class="st-in" inputmode="numeric" placeholder="&mdash;" oninput="onSTInput('minqe',this.value)">
+          </div>
+        </div>
+        <div class="st-fs">
+          <div class="st-cell">
+            <span class="st-lbl">Min FS</span>
+            <input id="st-minfs" class="st-in" inputmode="numeric" placeholder="&mdash;" oninput="onSTInput('minfs',this.value)">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="summary">
+      <div class="ring">
+        <svg width="74" height="74" viewBox="0 0 74 74">
+          <circle cx="37" cy="37" r="32" fill="none" stroke="#2a3320" stroke-width="7"/>
+          <circle id="mRingFill" cx="37" cy="37" r="32" fill="none" stroke="var(--amber)"
+                  stroke-width="7" stroke-linecap="round" stroke-dasharray="201" stroke-dashoffset="201"/>
+        </svg>
+        <div class="val"><b id="mRingNum">0/7</b><span>phases</span></div>
+      </div>
+      <div class="info">
+        <h2>Fire Mission</h2>
+        <p><span class="stat" id="mState">Awaiting mission</span></p>
+        <p id="mHint">Steps unlock as you complete them.</p>
+      </div>
+    </div>
+
+    <div class="section-label">Mission Sequence</div>
+    <div id="phaseList"></div>
+    <div id="fireBannerHolder"></div>
+
+    <div class="reset-row">
+      <button onclick="resetMission()">New fire mission</button>
+    </div>
+    <p class="hint">Amber = current step · Green = complete · Dim = locked</p>
+  </section>
+
+  <!-- ============ REFERENCE VIEW ============ -->
+  <section class="view" id="view-ref">
+    <div class="section-label">Important VPs</div>
+    <div class="ref-card">
+      <div class="ref-line">CP to all Guns, Battery Standby (PAUSE), Cancel at my Command, <b>Gun 1 in 10, 9, 8 … 3, 2, 1, Fire</b></div>
+      <div class="ref-line">10, <b>Round 1 Shot</b>, Out</div>
+      <div class="ref-line">10, <b>Round 8 Shot</b>, All last shot, Over</div>
+      <div class="ref-line">10, <b>Splash in 10, 9, 8 … 2, 1, Bang</b>, Out</div>
+    </div>
+
+    <div class="section-label">Allowable GEC</div>
+    <div class="ref-card">
+      <div class="ref-line">Line / QE / Angle T = <b>±20 mils</b></div>
+      <div class="ref-line">Should-hit Grid = <b>±50 metres</b></div>
+    </div>
+
+    <div class="section-label">Appointments</div>
+    <div class="ref-card">
+      <div class="gloss"><span class="term">FO</span><span class="def">Forward Observer</span></div>
+      <div class="gloss"><span class="term">GPO</span><span class="def">Gun Position Officer</span></div>
+      <div class="gloss"><span class="term">GS / GA</span><span class="def">Gun-line staff (GEC / actions)</span></div>
+      <div class="gloss"><span class="term">WSO</span><span class="def">Weapon Safety Officer</span></div>
+      <div class="gloss"><span class="term">PSO</span><span class="def">Position Safety Officer</span></div>
+      <div class="gloss"><span class="term">CSO</span><span class="def">Command Safety Officer</span></div>
+      <div class="gloss"><span class="term">BRO</span><span class="def">Battery / verifying officer</span></div>
+    </div>
+
+    <div class="section-label">Terms</div>
+    <div class="ref-card">
+      <div class="gloss"><span class="term">GEC</span><span class="def">Gun Error Correction</span></div>
+      <div class="gloss"><span class="term">COA</span><span class="def">Course of Action</span></div>
+      <div class="gloss"><span class="term">Safety T</span><span class="def">Safety template / trace</span></div>
+      <div class="gloss"><span class="term">QE</span><span class="def">Quadrant Elevation</span></div>
+      <div class="gloss"><span class="term">MSN / FFE</span><span class="def">Mission / Fire For Effect</span></div>
+      <div class="gloss"><span class="term">AMC</span><span class="def">At My Command</span></div>
+    </div>
+    <p class="hint">Reference only — adapt to your unit's SOP.</p>
+  </section>
+
+</div>
+
+<nav>
+  <button id="tab-preops" class="active" onclick="showView('preops')">
+    <span class="ic" id="preopsPill">&#9744;</span>
+    <span class="pill" id="preopsBadge" style="display:none"></span>
+    Pre-Ops
+  </button>
+  <button id="tab-mission" onclick="showView('mission')">
+    <span class="ic">&#9678;</span>
+    <span class="pill" id="missionBadge" style="display:none"></span>
+    Mission
+  </button>
+  <button id="tab-ref" onclick="showView('ref')">
+    <span class="ic">&#9776;</span>
+    Reference
+  </button>
+</nav>
+
+<script>
+/* ---------- DATA ---------- */
+const PREOPS = [
+  {id:"comms",  label:"Comms Check",            sub:"FO, Gun 1, 2, 3 net check"},
+  {id:"met",    label:"Met Message",            sub:"Received & in date"},
+  {id:"coa",    label:"COA Recorded",           sub:"Course of action confirmed"},
+  {id:"ammo",   label:"Ammo Downloaded",        sub:"All guns ammo state in"},
+  {id:"grids",  label:"Gun Grids Verified",     sub:"Checked by BRO"},
+  {id:"prop",   label:"Prop Temp",              sub:"Propellant temperature taken"},
+  {id:"gec",    label:"Map to Ground GEC",      sub:"GEC laid & recorded"},
+  {id:"arc",    label:"Construct Safety Arc",   sub:"Arc / Safety T built"},
+  {id:"safety", label:"Platform Safety Drills", sub:"All guns drills complete"}
+];
+
+const PHASES = [
+  {
+    id:"p1", title:"Mission Received", badge:null,
+    tasks:[
+      {id:"t1a", html:"<b class='who'>FO</b> pumps down the fire mission"},
+      {id:"t1b", html:"<b class='who'>GPO</b> acknowledges"}
+    ]
+  },
+  {
+    id:"p2", title:"Deliverables to FO", badge:"optional",
+    tasks:[
+      {id:"t2a", html:"<b class='who'>GPO</b> passes deliverables to FO (if applicable)"}
+    ]
+  },
+  {
+    id:"p3", title:"GEC & Gun Actions", badge:"concurrent",
+    tasks:[
+      {id:"t3a", html:"<b class='who'>GS</b> completes his GEC"},
+      {id:"t3b", html:"<b class='who'>GA</b> completes his actions"}
+    ]
+  },
+  {
+    id:"p4", title:"Firing Solutions", badge:null,
+    tasks:[
+      {id:"t4a", html:"<b class='who'>GPO</b> confirms solutions within <b>Safety T</b>"},
+      {id:"t4b", html:"<b class='who'>GPO</b> pumps fire mission to the guns"}
+    ]
+  },
+  {
+    id:"p5", title:"Ready Reports", badge:"concurrent",
+    tasks:[
+      {id:"t5a", html:"<b class='who'>Guns</b> report ready with laying"},
+      {id:"t5b", html:"<b class='who'>WSO</b> → PSO: ready with safety"}
+    ]
+  },
+  {
+    id:"p6", title:"Loading", badge:null,
+    tasks:[
+      {id:"t6a", html:"<b class='who'>GPO</b> orders guns to <b>LOAD</b>"},
+      {id:"t6b", html:"<b class='who'>Guns</b> loaded — report ready"}
+    ]
+  },
+  {
+    id:"p7", title:"All Safety Clear & Fire", badge:null,
+    tasks:[
+      {id:"t7a", html:"<b class='who'>WSO</b> → PSO: all safety clear"},
+      {id:"t7b", html:"<b class='who'>PSO</b> → CSO: all safety clear, permission to carry on"},
+      {id:"t7c", html:"Green light given by <b class='who'>CSO</b>"},
+      {id:"t7d", html:"<b class='who'>GPO</b> orders <b>FIRE</b>"}
+    ]
+  }
+];
+
+/* ---------- STATE ---------- */
+const KEY="bmt_state_v1";
+let state = load();
+function load(){
+  try{ const s=JSON.parse(localStorage.getItem(KEY)); if(s) return s; }catch(e){}
+  return {preops:{}, tasks:{}, skipped:{}, safetyT:{}, safetyTCollapsed:false};
+}
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} }
+
+/* ---------- PRE-OPS RENDER ---------- */
+function renderPreops(){
+  const list=document.getElementById("preopsList");
+  list.innerHTML="";
+  PREOPS.forEach((c,i)=>{
+    const done=!!state.preops[c.id];
+    const el=document.createElement("div");
+    el.className="check"+(done?" done":"");
+    el.innerHTML=`<span class="num">${i+1}</span>
+      <span class="box">&#10003;</span>
+      <span class="label"><span class="main">${c.label}</span><span class="sub">${c.sub}</span></span>`;
+    el.onclick=()=>{ state.preops[c.id]=!state.preops[c.id]; save(); renderPreops(); updateBadges(); };
+    list.appendChild(el);
+  });
+  const total=PREOPS.length;
+  const done=PREOPS.filter(c=>state.preops[c.id]).length;
+  const pct=done/total;
+  document.getElementById("ringNum").textContent=`${done}/${total}`;
+  document.getElementById("ringFill").style.strokeDashoffset=201-(201*pct);
+  const left=total-done;
+  document.getElementById("preopsLeft").textContent=
+    left===0?"All checks complete":`${left} check${left>1?"s":""} remaining`;
+  document.getElementById("preopsState").textContent=
+    left===0?"Battery ready — proceed to mission.":`${done} of ${total} done.`;
+}
+
+/* ---------- MISSION LOGIC ---------- */
+function phaseComplete(p){
+  if(state.skipped[p.id]) return true;
+  return p.tasks.every(t=>state.tasks[t.id]);
+}
+function firstIncomplete(){
+  for(let i=0;i<PHASES.length;i++){ if(!phaseComplete(PHASES[i])) return i; }
+  return PHASES.length;
+}
+
+function renderMission(){
+  const list=document.getElementById("phaseList");
+  list.innerHTML="";
+  const activeIdx=firstIncomplete();
+  PHASES.forEach((p,i)=>{
+    const complete=phaseComplete(p);
+    const active=(i===activeIdx);
+    const locked=(i>activeIdx);
+    const el=document.createElement("div");
+    el.className="phase "+(complete?"complete":active?"active":"locked");
+
+    const doneCount=p.tasks.filter(t=>state.tasks[t.id]).length;
+    let statusTxt = complete ? (state.skipped[p.id]?"N/A":"Done")
+                  : active ? `${doneCount}/${p.tasks.length}`
+                  : "Locked";
+    let badgeHtml="";
+    if(p.badge==="concurrent") badgeHtml=`<span class="badge concurrent">Both required</span>`;
+    if(p.badge==="optional")   badgeHtml=`<span class="badge optional">If applicable</span>`;
+
+    let stepGlyph = complete ? "&#10003;" : (i+1);
+
+    let tasksHtml=p.tasks.map(t=>{
+      const td=!!state.tasks[t.id];
+      return `<div class="task${td?" done":""}" data-task="${t.id}">
+        <span class="tbox">&#10003;</span>
+        <span class="ttext">${t.html}</span></div>`;
+    }).join("");
+
+    let skipHtml="";
+    if(p.badge==="optional" && !locked){
+      const sk=!!state.skipped[p.id];
+      skipHtml=`<button class="skip-btn${sk?" skipped":""}" data-skip="${p.id}">${sk?"Marked N/A — tap to undo":"Mark as not applicable"}</button>`;
+    }
+
+    el.innerHTML=`
+      <div class="ph-head">
+        <div class="ph-step">${stepGlyph}</div>
+        <div class="ph-titles">
+          <h3>${p.title}</h3>
+          <div class="meta"><span>Step ${i+1}</span>${badgeHtml}</div>
+        </div>
+        <div class="ph-status">${statusTxt}</div>
+      </div>
+      <div class="ph-body">${tasksHtml}${skipHtml}</div>`;
+
+    if(!locked){
+      el.querySelectorAll(".task").forEach(tEl=>{
+        tEl.onclick=()=>{
+          const id=tEl.getAttribute("data-task");
+          state.tasks[id]=!state.tasks[id];
+          if(state.tasks[id]) state.skipped[p.id]=false;
+          save(); renderMission(); updateBadges();
+        };
+      });
+      const sb=el.querySelector("[data-skip]");
+      if(sb) sb.onclick=()=>{
+        state.skipped[p.id]=!state.skipped[p.id];
+        if(state.skipped[p.id]) p.tasks.forEach(t=>state.tasks[t.id]=false);
+        save(); renderMission(); updateBadges();
+      };
+    }
+    list.appendChild(el);
+  });
+
+  // ring + state
+  const total=PHASES.length;
+  const done=PHASES.filter(p=>phaseComplete(p)).length;
+  document.getElementById("mRingNum").textContent=`${done}/${total}`;
+  document.getElementById("mRingFill").style.strokeDashoffset=201-(201*(done/total));
+
+  const allDone = done===total;
+  const fb=document.getElementById("fireBannerHolder");
+  if(allDone){
+    fb.innerHTML=`<div class="fire-banner hot">&#128293; CLEARED TO FIRE &#128293;<br><span style="font-size:11px;font-weight:600;letter-spacing:.5px">All safety clear · GPO order FIRE</span></div>`;
+    document.getElementById("mState").textContent="Cleared to fire";
+    document.getElementById("mHint").textContent="All phases complete & safety clear.";
+  } else {
+    fb.innerHTML="";
+    const ph=PHASES[activeIdx];
+    document.getElementById("mState").textContent=`Step ${activeIdx+1}: ${ph.title}`;
+    document.getElementById("mHint").textContent="Complete highlighted tasks to advance.";
+  }
+}
+
+/* ---------- BADGES / NAV ---------- */
+function updateBadges(){
+  const pDone=PREOPS.filter(c=>state.preops[c.id]).length;
+  const pLeft=PREOPS.length-pDone;
+  const pb=document.getElementById("preopsBadge");
+  const ptab=document.getElementById("tab-preops");
+  if(pLeft>0){ pb.style.display="block"; pb.textContent=pLeft; ptab.classList.remove("complete-pill"); }
+  else { pb.style.display="block"; pb.textContent="✓"; ptab.classList.add("complete-pill"); }
+
+  const mDone=PHASES.filter(p=>phaseComplete(p)).length;
+  const mLeft=PHASES.length-mDone;
+  const mb=document.getElementById("missionBadge");
+  const mtab=document.getElementById("tab-mission");
+  if(mDone===0){ mb.style.display="none"; mtab.classList.remove("complete-pill"); }
+  else if(mLeft>0){ mb.style.display="block"; mb.textContent=mLeft; mtab.classList.remove("complete-pill"); }
+  else { mb.style.display="block"; mb.textContent="✓"; mtab.classList.add("complete-pill"); }
+}
+
+/* ---------- VIEW SWITCH ---------- */
+const MODE={preops:"Pre-Ops",mission:"Fire Mission",ref:"Reference"};
+function showView(v){
+  document.querySelectorAll(".view").forEach(s=>s.classList.remove("active"));
+  document.getElementById("view-"+v).classList.add("active");
+  document.querySelectorAll("nav button").forEach(b=>b.classList.remove("active"));
+  document.getElementById("tab-"+v).classList.add("active");
+  document.getElementById("headerMode").textContent=MODE[v];
+  window.scrollTo(0,0);
+}
+
+/* ---------- RESETS ---------- */
+function resetPreops(){
+  if(confirm("Reset all 9 battery checks?")){ state.preops={}; save(); renderPreops(); updateBadges(); }
+}
+function resetMission(){
+  if(confirm("Start a new fire mission? This clears mission progress.")){
+    state.tasks={}; state.skipped={}; save(); renderMission(); updateBadges();
+  }
+}
+
+/* ---------- SAFETY T ---------- */
+const STF=["maxqe","left","charge","right","minqe","minfs"];
+function renderSafetyT(){
+  if(!state.safetyT) state.safetyT={};
+  STF.forEach(f=>{ const el=document.getElementById("st-"+f); if(el) el.value=state.safetyT[f]||""; });
+  document.getElementById("safetyT").classList.toggle("collapsed", !!state.safetyTCollapsed);
+  updateSTSummary();
+}
+function onSTInput(f,val){
+  if(!state.safetyT) state.safetyT={};
+  state.safetyT[f]=val.trim();
+  save(); updateSTSummary();
+}
+function updateSTSummary(){
+  const s=state.safetyT||{}; const p=[];
+  if(s.charge) p.push("Chg "+s.charge);
+  if(s.left||s.right) p.push("L "+(s.left||"—")+" R "+(s.right||"—"));
+  if(s.minqe||s.maxqe) p.push("QE "+(s.minqe||"—")+"–"+(s.maxqe||"—"));
+  if(s.minfs) p.push("FS "+s.minfs);
+  document.getElementById("stSummary").textContent = p.length?p.join(" · "):"Tap to set limits";
+}
+function toggleSafetyT(){
+  state.safetyTCollapsed=!state.safetyTCollapsed; save();
+  document.getElementById("safetyT").classList.toggle("collapsed", state.safetyTCollapsed);
+}
+
+/* keep sticky Safety T flush beneath the header */
+function setHeaderH(){
+  const h=document.querySelector("header").offsetHeight;
+  document.documentElement.style.setProperty("--header-h", h+"px");
+}
+window.addEventListener("resize", setHeaderH);
+
+/* ---------- INIT ---------- */
+setHeaderH();
+renderPreops();
+renderMission();
+renderSafetyT();
+updateBadges();
+</script>
+</body>
+</html>
